@@ -5475,7 +5475,8 @@ static HRESULT d3d12_descriptor_heap_create_descriptor_set(struct d3d12_descript
     }
 
     if (device->device_info.robustness2_features.nullDescriptor &&
-        binding->vk_descriptor_type != VK_DESCRIPTOR_TYPE_SAMPLER)
+        binding->vk_descriptor_type != VK_DESCRIPTOR_TYPE_SAMPLER &&
+        binding->vk_descriptor_type != VK_DESCRIPTOR_TYPE_MUTABLE_VALVE)
     {
         d3d12_descriptor_heap_zero_initialize(descriptor_heap,
                 binding->vk_descriptor_type, *vk_descriptor_set,
