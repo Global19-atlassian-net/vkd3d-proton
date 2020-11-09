@@ -104,6 +104,8 @@ static const struct vkd3d_optional_extension_info optional_device_extensions[] =
     VK_EXTENSION(AMD_SHADER_CORE_PROPERTIES_2, AMD_shader_core_properties2),
     /* NV extensions */
     VK_EXTENSION(NV_SHADER_SM_BUILTINS, NV_shader_sm_builtins),
+    /* VALVE extensions */
+    VK_EXTENSION(VALVE_MUTABLE_DESCRIPTOR_TYPE, VALVE_mutable_descriptor_type),
 };
 
 static unsigned int get_spec_version(const VkExtensionProperties *extensions,
@@ -136,6 +138,17 @@ static bool has_extension(const VkExtensionProperties *extensions,
 
     for (i = 0; i < count; ++i)
     {
+        /* We expect this extension to change a bit until finalized, so be very careful about versioning. */
+        if (!strcmp(extensions[i].extensionName, VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME))
+        {
+            if (extensions[i].specVersion != VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION)
+            {
+                ERR("Expected specVersion %u for VK_VALVE_mutable_descriptor_type, but got %u!\n",
+                     VK_VALVE_MUTABLE_DESCRIPTOR_TYPE_SPEC_VERSION, extensions[i].specVersion);
+                continue;
+            }
+        }
+
         if (is_extension_disabled(extension_name))
         {
             WARN("Extension %s is disabled.\n", debugstr_a(extension_name));
@@ -754,6 +767,7 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     VkPhysicalDeviceCustomBorderColorFeaturesEXT *custom_border_color_features;
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR *timeline_semaphore_features;
     VkPhysicalDevicePushDescriptorPropertiesKHR *push_descriptor_properties;
+    VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE *mutable_features;
     VkPhysicalDeviceShaderFloat16Int8FeaturesKHR *float16_int8_features;
     VkPhysicalDeviceShaderCoreProperties2AMD *shader_core_properties2;
     VkPhysicalDeviceDepthClipEnableFeaturesEXT *depth_clip_features;
@@ -800,6 +814,7 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     robustness2_features = &info->robustness2_features;
     extended_dynamic_state_features = &info->extended_dynamic_state_features;
     external_memory_host_properties = &info->external_memory_host_properties;
+    mutable_features = &info->mutable_descriptor_features;
 
     info->features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     info->properties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -960,6 +975,12 @@ static void vkd3d_physical_device_info_init(struct vkd3d_physical_device_info *i
     {
         shader_sm_builtins_properties->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV;
         vk_prepend_struct(&info->properties2, shader_sm_builtins_properties);
+    }
+
+    if (vulkan_info->VALVE_mutable_descriptor_type)
+    {
+        mutable_features->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_VALVE;
+        vk_prepend_struct(&info->features2, mutable_features);
     }
 
     VK_CALL(vkGetPhysicalDeviceFeatures2(physical_device, &info->features2));
